@@ -1,0 +1,44 @@
+server {
+    listen      %ip%:%web_port%;
+    server_name %domain_idn% %alias_idn%;
+    root        %docroot%;
+    access_log  /var/log/nginx/domains/%domain%.log combined;
+    access_log  /var/log/nginx/domains/%domain%.bytes bytes;
+    error_log   /var/log/nginx/domains/%domain%.error.log error;
+
+    location / {
+        index index.php;
+        if (-f $request_filename) {
+            break;
+        }
+
+        try_files $uri $uri/ @kohana;
+    }
+
+    # kohana Required only in the initial state where everything is installed under the directory
+    #location ~* ^/(modules|application|system) {
+    #    return 403;
+    #}
+
+    location ~* \.php$ {
+        try_files $uri $uri/ @kohana;
+        fastcgi_pass    %backend_lsnr%;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        #fastcgi_param SCRIPT_FILENAME /path/to/fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location @kohana {
+        fastcgi_pass    %backend_lsnr%;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+        include fastcgi_params;
+    }
+
+    include     /etc/nginx/conf.d/phpmyadmin.inc*;
+    include     /etc/nginx/conf.d/phppgadmin.inc*;
+    include     /etc/nginx/conf.d/webmail.inc*;
+	
+	include %home%/%user%/conf/web/%domain%/nginx.conf_*;
+}
